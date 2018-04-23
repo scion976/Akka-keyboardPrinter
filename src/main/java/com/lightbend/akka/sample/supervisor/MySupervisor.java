@@ -1,4 +1,4 @@
-package com.lightbend.akka.sample;
+package com.lightbend.akka.sample.supervisor;
 import akka.actor.PoisonPill;
 import akka.actor.Terminated;
 import akka.actor.AbstractActor;
@@ -7,6 +7,8 @@ import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.japi.pf.DeciderBuilder;
+import com.lightbend.akka.sample.Greeter;
+import com.lightbend.akka.sample.SystemReader;
 import scala.concurrent.duration.FiniteDuration;
 import java.util.concurrent.TimeUnit;
 
@@ -57,4 +59,3 @@ public class MySupervisor extends AbstractActor {
         .build();
     }
 }
-

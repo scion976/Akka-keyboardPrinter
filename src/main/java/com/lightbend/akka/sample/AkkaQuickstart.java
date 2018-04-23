@@ -3,13 +3,19 @@ package com.lightbend.akka.sample;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.AllDeadLetters;
+import akka.actor.Props;
+import akka.routing.FromConfig;
 import com.lightbend.akka.sample.Greeter.WhoToGreet;
 import com.lightbend.akka.sample.Greeter.Greet;
+import com.lightbend.akka.sample.supervisor.MySupervisor;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 public class AkkaQuickstart {
     public static void main(String[] args) {
 
-        final ActorSystem system = ActorSystem.create("helloakka");
+        Config config = ConfigFactory.load();
+        final ActorSystem system = ActorSystem.create("helloakka", config.getConfig("akka"));
 
         //#create-actors
         final ActorRef printerActor =
@@ -22,12 +28,19 @@ public class AkkaQuickstart {
                 system.actorOf(Greeter.props("Good day", printerActor), "goodDayGreeter");
 
         system.actorOf(MySupervisor.props(printerActor), "supervisor");
+        ActorRef router = system.actorOf(Props.create(Squabblers.class).withRouter(new FromConfig()), "router");
+        ActorRef gatling = system.actorOf(Gatling.props(50, router, f -> new Squabblers.Say((Number) f)));
+        system.registerOnTermination(new Runnable() {
+            @Override
+            public void run() {
+                gatling.tell("end", ActorRef.noSender());
+            }
+        });
+
         system.eventStream().subscribe(system.actorOf(DivinePostman.props(printerActor)), AllDeadLetters.class);
 
         //#create-actors
-
         //#main-send-messages
-//        reader.tell(new Start(), ActorRef.noSender());
         howdyGreeter.tell(new WhoToGreet("Akka"), ActorRef.noSender());
         howdyGreeter.tell(new Greet(), ActorRef.noSender());
 

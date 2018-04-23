@@ -12,6 +12,7 @@ public class DivinePostman extends AbstractActor {
     }
 
     private final ActorRef printerActor;
+
     DivinePostman(ActorRef printerActor) {
         this.printerActor = printerActor;
     }
