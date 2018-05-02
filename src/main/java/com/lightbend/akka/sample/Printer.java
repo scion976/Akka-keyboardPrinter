@@ -34,6 +34,7 @@ public class Printer extends AbstractActor {
         .match(Greeting.class, greeting -> {
             log.info(greeting.message);
         })
+        .matchAny(message -> log.info(message.toString()))
         .build();
   }
 //#printer-messages

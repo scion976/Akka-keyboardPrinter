@@ -22,7 +22,11 @@ public class Greeter extends AbstractActor {
   }
 
   static public class Greet {
+    private String addendum = "";
     public Greet() {
+    }
+    public Greet(String addendum) {
+        this.addendum = " " + addendum;
     }
   }
   //#greeter-messages
@@ -42,9 +46,9 @@ public class Greeter extends AbstractActor {
         .match(WhoToGreet.class, wtg -> {
           this.greeting = message + ", " + wtg.who;
         })
-        .match(Greet.class, x -> {
+        .match(Greet.class, greet -> {
           //#greeter-send-message
-          printerActor.tell(new Greeting(greeting), getSelf());
+          printerActor.tell(new Greeting(greeting + greet.addendum), getSelf());
           //#greeter-send-message
         }).matchAny(x -> {
             System.out.println("Any");

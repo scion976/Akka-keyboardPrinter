@@ -12,14 +12,14 @@ import com.lightbend.akka.sample.SystemReader;
 import scala.concurrent.duration.FiniteDuration;
 import java.util.concurrent.TimeUnit;
 
-public class MySupervisor extends AbstractActor {
+public class PrinterSupervisor extends AbstractActor {
     static public Props props(ActorRef printerActor) {
-        return Props.create(MySupervisor.class, () -> new MySupervisor(printerActor));
+        return Props.create(PrinterSupervisor.class, () -> new PrinterSupervisor(printerActor));
     }
 
     private static FiniteDuration finiteDuration = new FiniteDuration(5, TimeUnit.MILLISECONDS);
     private int numErrors = 0;
-    public SupervisorStrategy strategy = new OneForOneStrategy(3, finiteDuration, DeciderBuilder.match(NullPointerException.class,
+    private SupervisorStrategy strategy = new OneForOneStrategy(3, finiteDuration, DeciderBuilder.match(NullPointerException.class,
             e -> {
                 numErrors++;
                 if (numErrors == 1) {
@@ -38,7 +38,7 @@ public class MySupervisor extends AbstractActor {
             }
     ).build());
 
-    public MySupervisor(ActorRef printerActor) {
+    public PrinterSupervisor(ActorRef printerActor) {
         ActorRef reader = getContext().actorOf(SystemReader.props(printerActor), "reader");
         getContext().watch(reader);
     }

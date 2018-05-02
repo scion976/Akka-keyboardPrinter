@@ -23,6 +23,34 @@
             <artifactId>junit</artifactId>
             <version>4.12</version>
         </dependency>
+
+        <dependency>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-core_2.12</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+
+        <!-- Optional Dependencies -->
+        <dependency>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-prometheus_2.12</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-zipkin_2.12</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.25</version>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>1.9.1</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

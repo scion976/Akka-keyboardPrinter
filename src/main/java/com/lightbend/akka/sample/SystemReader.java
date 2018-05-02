@@ -9,6 +9,14 @@ import java.io.InputStreamReader;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import akka.dispatch.OnSuccess;
+import scala.Function1;
+import scala.concurrent.Future;
+import scala.concurrent.ExecutionContext;
+import scala.runtime.BoxedUnit;
+
+import static akka.dispatch.Futures.future;
+
 public class SystemReader extends AbstractActor {
     static public Props props(ActorRef printerActor) {
         return Props.create(SystemReader.class, () -> new SystemReader(printerActor));
@@ -39,7 +47,14 @@ public class SystemReader extends AbstractActor {
     }
 
     private void nonblockingRead() {
-        CompletableFuture.supplyAsync(supplier).thenAccept(fromKeyboard -> self().tell(fromKeyboard, self()));
+        final ExecutionContext ec = context().dispatcher();
+        future(() -> (supplier.get()), ec).onSuccess(
+                new OnSuccess<String>() {
+                    @Override
+                    public void onSuccess(String fromKeyboard) throws Throwable {
+                        self().tell(fromKeyboard, self());
+                    }
+                }, ec);
     }
 
     @Override
@@ -61,7 +76,7 @@ public class SystemReader extends AbstractActor {
                 }
 
             })
-            .matchAny(props -> System.out.println("I accept no messages")) //never called
+            .matchAny(props -> System.out.println("I accept no other types of messages: " + props)) //never called
             .build();
     }
 }
