@@ -40,10 +40,12 @@ public class AkkaQuickstart {
         List<ActorRef> allGreeters = Arrays.asList(howdyGreeter, helloGreeter, goodDayGreeter);
 
         ActorRef timer = system.actorOf(Timer.props(), "timer");
-        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(5, ChronoUnit.SECONDS), 5), ActorRef.noSender());
-        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(1, ChronoUnit.SECONDS), 1), ActorRef.noSender());
-        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(4, ChronoUnit.SECONDS), 4), ActorRef.noSender());
-        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(3, ChronoUnit.SECONDS), 3), ActorRef.noSender());
+        long now = System.currentTimeMillis();
+        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(5, ChronoUnit.SECONDS).toMillis() + now, 5), ActorRef.noSender());
+        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(1, ChronoUnit.SECONDS).toMillis() + now, 1), ActorRef.noSender());
+        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(8, ChronoUnit.SECONDS).toMillis() + now, 8), ActorRef.noSender());
+        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(4, ChronoUnit.SECONDS).toMillis() + now, 4), ActorRef.noSender());
+        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(3, ChronoUnit.SECONDS).toMillis() + now, 3), ActorRef.noSender());
 
         ActorRef wait = system.actorOf(Wait1Sec.props(allGreeters));
         system.registerOnTermination(() -> {
