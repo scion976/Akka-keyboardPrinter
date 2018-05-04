@@ -6,16 +6,10 @@ import akka.actor.Props;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-
+import akka.dispatch.Futures;
 import akka.dispatch.OnSuccess;
-import scala.Function1;
-import scala.concurrent.Future;
 import scala.concurrent.ExecutionContext;
-import scala.runtime.BoxedUnit;
-
-import static akka.dispatch.Futures.future;
 
 public class SystemReader extends AbstractActor {
     static public Props props(ActorRef printerActor) {
@@ -48,7 +42,7 @@ public class SystemReader extends AbstractActor {
 
     private void nonblockingRead() {
         final ExecutionContext ec = context().dispatcher();
-        future(() -> (supplier.get()), ec).onSuccess(
+        Futures.future(() -> (supplier.get()), ec).onSuccess(
                 new OnSuccess<String>() {
                     @Override
                     public void onSuccess(String fromKeyboard) throws Throwable {
@@ -64,7 +58,7 @@ public class SystemReader extends AbstractActor {
             .match(String.class, fromKeyboard -> {
                 if(fromKeyboard.isEmpty()) {
                     System.out.println("stopping");
-                    self().tell(PoisonPill.getInstance(), self());
+                    self().tell(PoisonPill.getInstance(), ActorRef.noSender());
                 }
                 else if (fromKeyboard.equals("e")) {
                     System.out.println("exception");

@@ -4,6 +4,8 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.AllDeadLetters;
 import akka.actor.PoisonPill;
+import akka.actor.Props;
+import akka.routing.FromConfig;
 import com.lightbend.akka.sample.Greeter.WhoToGreet;
 import com.lightbend.akka.sample.supervisor.PrinterSupervisor;
 import com.typesafe.config.Config;
@@ -11,8 +13,6 @@ import com.typesafe.config.ConfigFactory;
 
 //import kamon.Kamon;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 
@@ -20,14 +20,13 @@ public class AkkaQuickstart {
 
     public static void main(String[] args) {
         Config config = ConfigFactory.load();
-        final ActorSystem system = ActorSystem.create("helloakka", config.getConfig("akka"));
+        final ActorSystem system = ActorSystem.create("application", config.getConfig("akka"));
 
         //#create-actors
         final ActorRef printerActor = system.actorOf(Printer.props(), "printerActor");
         final ActorRef howdyGreeter = system.actorOf(Greeter.props("Howdy", printerActor), "howdyGreeter");
         final ActorRef helloGreeter = system.actorOf(Greeter.props("Hello", printerActor), "helloGreeter");
         final ActorRef goodDayGreeter = system.actorOf(Greeter.props("Good day", printerActor), "goodDayGreeter");
-
         system.actorOf(PrinterSupervisor.props(printerActor), "supervisor");
         system.eventStream().subscribe(system.actorOf(DivinePostman.props(printerActor)), AllDeadLetters.class);
 
@@ -39,17 +38,10 @@ public class AkkaQuickstart {
         goodDayGreeter.tell(new WhoToGreet("Play"), ActorRef.noSender());
         List<ActorRef> allGreeters = Arrays.asList(howdyGreeter, helloGreeter, goodDayGreeter);
 
-        ActorRef timer = system.actorOf(Timer.props(), "timer");
-        long now = System.currentTimeMillis();
-        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(5, ChronoUnit.SECONDS).toMillis() + now, 5), ActorRef.noSender());
-        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(1, ChronoUnit.SECONDS).toMillis() + now, 1), ActorRef.noSender());
-        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(8, ChronoUnit.SECONDS).toMillis() + now, 8), ActorRef.noSender());
-        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(4, ChronoUnit.SECONDS).toMillis() + now, 4), ActorRef.noSender());
-        timer.tell(Timer.ScheduleWakeUpCall.createWakeupCall(printerActor, Duration.of(3, ChronoUnit.SECONDS).toMillis() + now, 3), ActorRef.noSender());
+        system.actorOf(Timer.props(), "timer");
+        system.actorOf(Props.create(Squabblers.class).withRouter(FromConfig.getInstance()), "SquabblerRouter");
 
         ActorRef wait = system.actorOf(Wait1Sec.props(allGreeters));
-        system.registerOnTermination(() -> {
-            wait.tell(PoisonPill.getInstance(), ActorRef.noSender());
-        });
+        system.registerOnTermination(() -> wait.tell(PoisonPill.getInstance(), ActorRef.noSender()));
     }
 }

@@ -25,7 +25,6 @@ public class PrinterSupervisor extends AbstractActor {
                 if (numErrors == 1) {
                     System.out.println("supervisor resuming");
                     context().child("reader").get().tell(Props.empty(), self());
-
                     return SupervisorStrategy.resume();
                 }
                 else if(numErrors == 2) {
@@ -33,14 +32,14 @@ public class PrinterSupervisor extends AbstractActor {
                     return SupervisorStrategy.restart();
                 }
                 System.out.println("supervisor escalating");
-                context().child("reader").get().tell(new Greeter.WhoToGreet("f"), self()); // deadLetter
+                context().child("reader").get().tell(new Greeter.WhoToGreet("deadLetter"), self()); // deadLetter
                 return SupervisorStrategy.escalate();
             }
     ).build());
 
+    private final ActorRef reader;
     public PrinterSupervisor(ActorRef printerActor) {
-        ActorRef reader = getContext().actorOf(SystemReader.props(printerActor), "reader");
-        getContext().watch(reader);
+        reader = getContext().watch(getContext().actorOf(SystemReader.props(printerActor), "reader"));
     }
 
     @Override
@@ -52,7 +51,7 @@ public class PrinterSupervisor extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder()
             .match(Terminated.class, f -> {
-                System.out.println(f + " was terminated");
+                System.out.println(f + " was terminated: " + f.getActor().equals(reader));
                 context().parent().tell(PoisonPill.getInstance(), self());
             })
             .matchAny(props -> System.out.println("I accept no messages")) //never called

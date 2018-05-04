@@ -19,6 +19,7 @@ public class Wait1Sec extends AbstractActor {
     private List<ActorRef> allGreeters;
     private Thread thread;
     private int count;
+    private static final long waitTime = 1500;
 
     private Wait1Sec(List<ActorRef> allGreeters) {
         this.allGreeters = allGreeters;
@@ -27,6 +28,8 @@ public class Wait1Sec extends AbstractActor {
     @Override
     public void preStart() throws Exception {
         super.preStart();
+        ActorRef actorRef = allGreeters.get(new Random().nextInt(allGreeters.size()));
+        actorRef.tell(new Greeter.Greet(Integer.valueOf(++count).toString()), self());
         go();
     }
 
@@ -34,14 +37,13 @@ public class Wait1Sec extends AbstractActor {
     public void postStop() throws Exception {
         super.postStop();
         thread.interrupt();
-
     }
 
     private void go () {
         final ExecutionContext ec = context().dispatcher();
         future(() -> {
                 thread = Thread.currentThread();
-                Thread.sleep(1000);
+                Thread.sleep(waitTime);
                 return allGreeters.get(new Random().nextInt(allGreeters.size()));
             }, ec)
         .onSuccess(

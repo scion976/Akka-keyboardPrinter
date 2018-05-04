@@ -5,6 +5,9 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.Futures;
 import scala.concurrent.ExecutionContext;
+
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
@@ -16,21 +19,33 @@ public class Timer extends AbstractActor {
     }
 
     private static final ScheduleWakeUpCall empty = new ScheduleWakeUpCall<>(null, 0, null);
-
     private final DelayQueue<ScheduleWakeUpCall> queue = new DelayQueue<>();
     private final ExecutionContext ec = getContext().getSystem().dispatchers().lookup("blockingTimerDispatcher");
+    private boolean loop = true;
 
     @Override
     public void preStart() throws Exception {
+        System.out.println(akka.serialization.Serialization.serializedActorPath(self()));
         run();
+    }
+
+    @Override
+    public void postStop() throws Exception {
+        super.postStop();
+        loop = false;
+        queue.clear();
+        queue.offer(new ScheduleWakeUpCall<>(Collections.emptySet(), System.currentTimeMillis(), null));
     }
 
     private void run() {
         Futures.future(() -> {
-            while (true) {
-                ScheduleWakeUpCall next = queue.take(); // blocks
-                next.getWhoToNotify().tell(new WakeUpCall<>(next.getMessage()), self());
+            while (loop) {
+                ScheduleWakeUpCall<?> nextCall = queue.take(); // blocks
+                nextCall
+                    .getWhoToNotify()
+                    .forEach(next -> next.tell(new WakeUpCall<>(nextCall.getMessage()), self()));
             }
+            return null;
         }, ec);
     }
 
@@ -45,19 +60,19 @@ public class Timer extends AbstractActor {
             .build();
     }
 
-    static class ScheduleWakeUpCall<T> implements Delayed {
-        private final ActorRef whoToNotify;
+    public static class ScheduleWakeUpCall<T> implements Delayed {
+        private final Collection<ActorRef> whoToNotify;
         private final long whenToAwakeET;
         private final T message;
 
         // deliberately private, use static create methods
-        private ScheduleWakeUpCall(ActorRef whoToNotify, long whenToAwakeET, T message) {
+        private ScheduleWakeUpCall(Collection<ActorRef> whoToNotify, long whenToAwakeET, T message) {
             this.whoToNotify = whoToNotify;
             this.whenToAwakeET = whenToAwakeET;
             this.message = message;
         }
 
-        public ActorRef getWhoToNotify() {
+        public Collection<ActorRef> getWhoToNotify() {
             return whoToNotify;
         }
 
@@ -88,14 +103,18 @@ public class Timer extends AbstractActor {
             return unit.convert(lengthOfSleepFromNow(), TimeUnit.MILLISECONDS);
         }
 
-        static<T> ScheduleWakeUpCall createWakeupCall(ActorRef whoToNotify, long whenToAwakeET, T t) {
+        static<T> ScheduleWakeUpCall createWakeupCall(Collection<ActorRef> whoToNotify, long whenToAwakeET, T t) {
             return Optional.ofNullable(whoToNotify)
                     .map(toNotify -> new ScheduleWakeUpCall<>(toNotify, whenToAwakeET, t))
                     .orElse(empty);
         }
 
+        static<T> ScheduleWakeUpCall createWakeupCall(ActorRef whoToNotify, long whenToAwakeET, T t) {
+            return createWakeupCall(Collections.singleton(whoToNotify), whenToAwakeET, t);
+        }
+
         static ScheduleWakeUpCall createWakeupCall(ActorRef whoToNotify, long whenToAwakeET) {
-            return createWakeupCall(whoToNotify, whenToAwakeET, null);
+            return createWakeupCall(Collections.singleton(whoToNotify), whenToAwakeET, null);
         }
 
     }
